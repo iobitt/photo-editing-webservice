@@ -1,2 +1,17 @@
-fastapi
+# local dev server
 uvicorn
+
+# web framework
+fastapi
+
+# for multipart form-data
+python-multipart
+
+# File support for asyncio
+aiofiles
+
+# for image processing
+opencv-python
+
+# matrix operations (for opencv)
+numpy
