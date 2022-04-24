@@ -1,1 +1,1 @@
-uvicorn app.application:app --reload
+uvicorn app.application:app --reload --host 0.0.0.0
