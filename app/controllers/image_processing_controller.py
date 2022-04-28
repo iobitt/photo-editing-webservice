@@ -1,11 +1,12 @@
 from fastapi import APIRouter, UploadFile, BackgroundTasks
+from typing import List
 import uuid
 import aiofiles
-import time
 from os.path import exists
 
 from app.services.image_processing.increase_brightness_service import IncreaseBrightnessService
 from app.services.image_processing.crop_image_service import CropImageService
+from app.services.image_processing.stitch_service import StitchService
 
 router = APIRouter()
 
@@ -26,15 +27,29 @@ async def increase_brightness(value: int, file: UploadFile, background_tasks: Ba
         return {'ok': False, 'error': 'value должен быть больше 0'}
 
     file_path = await save_input_file(file)
-    background_tasks.add_task(increase_brightness, file_path, value)
+    background_tasks.add_task(increase_brightness_task, file_path, value)
     return {'ok': True, 'new_file_name': file_path}
 
 
 @router.post("/image_processing/crop_image", description="Обрезать изображение", tags=["image"])
 async def crop_image(x: int, y: int, width: int, height: int, file: UploadFile, background_tasks: BackgroundTasks):
     file_path = await save_input_file(file)
-    background_tasks.add_task(crop_image, file_path, x, y, width, height)
+    background_tasks.add_task(crop_image_task, file_path, x, y, width, height)
     return {'ok': True, 'new_file_name': file_path}
+
+
+@router.post("/image_processing/stitch_image", tags=["image"],
+             description="Склеить изображения как панораму(mode=0), как сканы(mode=1)")
+async def stitch_images(mode: int, images: List[UploadFile], background_tasks: BackgroundTasks):
+    image_paths = []
+    output_file = ''
+    for file in images:
+        file_name = await save_input_file(file)
+        if not output_file:
+            output_file = file_name
+        image_paths.append(f"{UPLOADED_FILES_DIR}{file_name}")
+    background_tasks.add_task(stitch_images_task, output_file, image_paths, mode)
+    return {'ok': True, 'new_file_name': output_file}
 
 
 async def save_input_file(file):
@@ -48,15 +63,18 @@ async def save_input_file(file):
     return f"{job_id}.{file_extension}"
 
 
-def increase_brightness(file_name: str, brightness_diff):
-    time.sleep(30)  # Симуляция длительной операции
+def increase_brightness_task(file_name: str, brightness_diff):
     image_path = f"{UPLOADED_FILES_DIR}{file_name}"
     output_image_path = f"{DOWNLOADED_FILES_DIR}{file_name}"
     IncreaseBrightnessService(image_path, output_image_path, brightness_diff).execute()
 
 
-def crop_image(file_name: str, x, y, width, height):
-    time.sleep(30)  # Симуляция длительной операции
+def crop_image_task(file_name: str, x, y, width, height):
     image_path = f"{UPLOADED_FILES_DIR}{file_name}"
     output_image_path = f"{DOWNLOADED_FILES_DIR}{file_name}"
     CropImageService(image_path, output_image_path, x, y, width, height).execute()
+
+
+def stitch_images_task(file_name: str, image_paths, mode=0):
+    output_image_path = f"{DOWNLOADED_FILES_DIR}{file_name}"
+    StitchService(image_paths, output_image_path, mode).execute()
