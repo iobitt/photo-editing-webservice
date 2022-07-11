@@ -8,3 +8,7 @@ docker-compose.yml
 README.md
 .git
 .idea
+docs/
+mongo-volume
+lib/darknet
+lib/

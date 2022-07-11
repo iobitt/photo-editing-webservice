@@ -7,35 +7,20 @@ from app.services.image_processing.base_service import BaseService
 
 class StitchService(BaseService):
 
-    def __init__(self, image_paths, output_image_path):
-        self.image_paths = image_paths
-        self.output_image_path = output_image_path
+    def __init__(self, images):
+        self.images = images
         self.errors = []
 
         self.stitcher = cv2.createStitcher() if imutils.is_cv3() else cv2.Stitcher_create()
 
     def execute(self):
-        images = self.load_images()
-        if self.errors:
-            return [False, None, self.errors]
-
-        result_image = self.stitch(images)
+        result_image = self.stitch(self.images)
         if self.errors:
             return [False, None, self.errors]
         else:
             result_image = self.trim_edges(result_image)
 
-        self.save_image(result_image)
-        return [True, self.output_image_path, None]
-
-    def load_images(self):
-        images = []
-        for image_path in self.image_paths:
-            image = cv2.imread(image_path)
-            if image is None:
-                self.errors.append(f"Не смог прочитать изображение: {image_path}")
-            images.append(image)
-        return images
+        return [True, result_image, None]
 
     def stitch(self, images):
         status, result_image = self.stitcher.stitch(images)

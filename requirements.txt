@@ -1,8 +1,20 @@
-# local dev server
+# web server
 uvicorn
 
 # web framework
 fastapi
+
+# models declarations
+pydantic
+
+# for jwt tokens
+python-jose[cryptography]
+
+# for password hashing
+passlib[bcrypt]
+
+# mongo adapter
+pymongo
 
 # for multipart form-data
 python-multipart
@@ -16,6 +28,8 @@ opencv-python
 # matrix operations (for opencv)
 numpy
 
+# utils for work with images
 imutils
 
-redis
+# load variables from env file
+python-dotenv

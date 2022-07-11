@@ -1,13 +1,16 @@
 version: "3.9"
 services:
-  redis:
-    image: "redis:alpine"
-    hostname: redis
+  database:
+    image: 'mongo:4.2.21'
+    volumes:
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - mongo-volume:/data/db
+    env_file: .env
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    depends_on:
-      - redis
     ports:
       - "8999:8000"
+volumes:
+  mongo-volume:
