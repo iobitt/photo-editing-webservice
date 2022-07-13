@@ -10,13 +10,14 @@ PREFIX = '/users'
 
 router = APIRouter(
     prefix=PREFIX,
+    dependencies=[Depends(get_current_user)],
     tags=['users'],
     responses={404: {"description": "Not found"}},
 )
 
 
 @router.get("/")
-async def index(depends=Depends(get_current_user)):
+async def index():
     return get_all_users()
 
 
