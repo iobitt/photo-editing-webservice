@@ -19,8 +19,9 @@ THICKNESS = 1
 
 class ObjectDetectionService(BaseService):
 
-    def __init__(self, image):
+    def __init__(self, image, min_confidence=CONFIDENCE):
         super().__init__(image)
+        self.min_confidence = min_confidence
 
     def execute(self):
         return self.detect()
@@ -43,7 +44,8 @@ class ObjectDetectionService(BaseService):
         time_took = time.perf_counter() - start
         print("Time took:", time_took)
 
-        boxes, confidences, class_ids = self.process_result(layer_outputs, image_height, image_weight)
+        boxes, confidences, class_ids = self.process_result(layer_outputs, image_height, image_weight,
+                                                            self.min_confidence)
 
         # выполнить не максимальное подавление с учетом оценок, определенных ранее
         idxs = cv2.dnn.NMSBoxes(boxes, confidences, SCORE_THRESHOLD, IOU_THRESHOLD)
@@ -51,7 +53,7 @@ class ObjectDetectionService(BaseService):
         return self.get_output(boxes, confidences, class_ids, idxs)
 
     @staticmethod
-    def process_result(layer_outputs, image_height, image_weight):
+    def process_result(layer_outputs, image_height, image_weight, min_confidence):
         boxes, confidences, class_ids = [], [], []
         # loop over each of the layer outputs
         for output in layer_outputs:
@@ -64,7 +66,7 @@ class ObjectDetectionService(BaseService):
                 confidence = scores[class_id]
                 # отбросим слабые прогнозы, убедившись, что у обнаруженных
                 # вероятность больше минимальной вероятности
-                if confidence > CONFIDENCE:
+                if confidence > min_confidence:
                     # масштабируем координаты ограничивающего прямоугольника относительно
                     # размер изображения, учитывая, что YOLO на самом деле
                     # возвращает центральные координаты (x, y) ограничивающего

@@ -15,6 +15,8 @@ def create_user(user: NewUser):
 
 def get_user(email: str):
     user_data = db.users.find_one({'email': email})
+    if not user_data:
+        return
     user_data['id'] = str(user_data['_id'])
     if user_data:
         return User(**user_data)

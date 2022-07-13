@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, BackgroundTasks, Request, Depends
 from bson.objectid import ObjectId
-from typing import List
+from typing import List, Union
 import aiofiles
 import os
 import cv2
@@ -92,14 +92,26 @@ async def stitch_images(images: List[UploadFile], background_tasks: BackgroundTa
 
 
 @router.post("/detect", description="Определить объекты на изображении")
-async def detect_objects(image: UploadFile, background_tasks: BackgroundTasks):
+async def detect_objects(image: UploadFile,
+                         background_tasks: BackgroundTasks,
+                         min_confidence: Union[float, None] = 0.5,
+                         border_size: Union[int, None] = 1,
+                         with_labels: Union[bool, None] = True,
+                         full_output: Union[bool, None] = True):
     job_id = str(db.jobs.insert_one({'status': 'created'}).inserted_id)
 
     folder_path = f"{UPLOADED_FILES_DIR}{job_id}"
     os.mkdir(folder_path)
 
     image_path = await save_input_file(image, folder_path)
-    background_tasks.add_task(object_detection_task, f"{job_id}.png", job_id, image_path)
+    background_tasks.add_task(object_detection_task,
+                              f"{job_id}.png",
+                              job_id,
+                              image_path,
+                              min_confidence=min_confidence,
+                              border_width=border_size,
+                              with_labels=with_labels,
+                              full_output=full_output)
 
     db.jobs.update_one({"_id": ObjectId(job_id)}, {"$set": {'status': 'added_to_queue'}})
 
@@ -165,10 +177,32 @@ def stitch_images_task(file_name: str, job_id, image_paths):
 
 
 @job_decorator
-def object_detection_task(file_name: str, job_id, image_path):
+def object_detection_task(file_name: str,
+                          job_id, image_path,
+                          min_confidence=0.5,
+                          border_width=1,
+                          with_labels=True,
+                          full_output=True):
     output_image_path = f"{DOWNLOADED_FILES_DIR}{file_name}"
     image = cv2.imread(image_path)
-    result = ObjectDetectionService(image).execute()
-    result_image = PutCaptionsOnImageService(image, result).execute()
+    result = ObjectDetectionService(image, min_confidence=min_confidence).execute()
+    result_image = PutCaptionsOnImageService(image,
+                                             result,
+                                             border_width=border_width,
+                                             with_labels=with_labels).execute()
     cv2.imwrite(output_image_path, result_image)
-    return result
+
+    if full_output:
+        return result
+    else:
+        return {'detection_count': count_unique_objects_number(result)}
+
+
+def count_unique_objects_number(detection_result):
+    count = {}
+    for detection_result in detection_result:
+        if detection_result['label'] in count:
+            count[detection_result['label']] += 1
+        else:
+            count[detection_result['label']] = 1
+    return count

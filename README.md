@@ -32,3 +32,6 @@
 Когда "ready" будет равен true, скачать изображение по ссылке
 
 http://localhost:8000/downloadable_files/{new_file_name}
+
+
+wget https://pjreddie.com/media/files/yolov3.weights

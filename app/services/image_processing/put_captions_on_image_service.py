@@ -12,9 +12,11 @@ THICKNESS = 1
 
 class PutCaptionsOnImageService(BaseService):
 
-    def __init__(self, image, detection_result):
+    def __init__(self, image, detection_result, border_width=THICKNESS, with_labels=True):
         super().__init__(image)
         self.detection_result = detection_result
+        self.border_width = border_width
+        self.with_labels = with_labels
 
     def execute(self):
         return self.put_captions()
@@ -28,19 +30,21 @@ class PutCaptionsOnImageService(BaseService):
             cv2.rectangle(image,
                           (detection['x'], detection['y']),
                           (detection['x'] + detection['w'], detection['y'] + detection['h']),
-                          color=color, thickness=THICKNESS)
-            text = f"{LABELS[detection['class_id']]}: {detection['confidence']:.2f}"
-            # вычисляем ширину и высоту текста, чтобы рисовать прозрачные поля в качестве фона текста
-            (text_width, text_height) = \
-                cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, fontScale=FONT_SCALE, thickness=THICKNESS)[0]
-            text_offset_x = detection['x']
-            text_offset_y = detection['y'] - 5
-            box_coords = ((text_offset_x, text_offset_y), (text_offset_x + text_width + 2, text_offset_y - text_height))
-            overlay = image.copy()
-            cv2.rectangle(overlay, box_coords[0], box_coords[1], color=color, thickness=cv2.FILLED)
-            # добавить непрозрачность (прозрачность поля)
-            image = cv2.addWeighted(overlay, 0.6, image, 0.4, 0)
-            # теперь поместите текст (метка: доверие%)
-            cv2.putText(image, text, (detection['x'], detection['y'] - 5), cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=FONT_SCALE, color=(0, 0, 0), thickness=THICKNESS)
+                          color=color, thickness=self.border_width)
+            if self.with_labels:
+                text = f"{LABELS[detection['class_id']]}: {detection['confidence']:.2f}"
+                # вычисляем ширину и высоту текста, чтобы рисовать прозрачные поля в качестве фона текста
+                (text_width, text_height) = \
+                    cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, fontScale=FONT_SCALE, thickness=THICKNESS)[0]
+                text_offset_x = detection['x']
+                text_offset_y = detection['y'] - 5
+                box_coords = ((text_offset_x, text_offset_y),
+                              (text_offset_x + text_width + 2, text_offset_y - text_height))
+                overlay = image.copy()
+                cv2.rectangle(overlay, box_coords[0], box_coords[1], color=color, thickness=cv2.FILLED)
+                # добавить непрозрачность (прозрачность поля)
+                image = cv2.addWeighted(overlay, 0.6, image, 0.4, 0)
+                # теперь поместите текст (метка: доверие%)
+                cv2.putText(image, text, (detection['x'], detection['y'] - 5), cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=FONT_SCALE, color=(0, 0, 0), thickness=THICKNESS)
         return image
