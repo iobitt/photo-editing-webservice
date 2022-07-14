@@ -1,3 +1,5 @@
+import secrets
+import string
 from passlib.hash import pbkdf2_sha256
 
 from app.secrets import SALT, ADMIN_USERNAME, ADMIN_PASSWORD
@@ -5,10 +7,16 @@ from app.models.user import User, NewUser, UserPublic
 from app.db.db import db
 
 
-def create_user(user: NewUser):
+def generate_password(pass_len: int):
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for i in range(pass_len))
+
+
+def create_user(user: NewUser, admin=False):
     data = {
         'email': user.email,
-        'password_digest': pbkdf2_sha256.hash(user.password + SALT)
+        'password_digest': pbkdf2_sha256.hash(user.password + SALT),
+        'admin': admin
     }
     return db.users.insert_one(data)
 
@@ -34,7 +42,7 @@ def create_admin(username, password):
     admin = get_user(username)
     if not admin:
         user = NewUser(email=username, password=password)
-        create_user(user)
+        create_user(user, admin=True)
 
 
 create_admin(ADMIN_USERNAME, ADMIN_PASSWORD)
