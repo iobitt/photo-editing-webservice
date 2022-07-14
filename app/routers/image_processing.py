@@ -5,6 +5,7 @@ import aiofiles
 import os
 import cv2
 
+from app.models.user import User
 from app.services.image_processing.increase_brightness_service import IncreaseBrightnessService
 from app.services.image_processing.crop_image_service import CropImageService
 from app.services.image_processing.stitch_service import StitchService
@@ -20,13 +21,12 @@ DOWNLOADED_FILES_DIR = 'tmp/downloadable_files/'
 
 router = APIRouter(
     prefix='/image_processing',
-    tags=['image_processing'],
-    dependencies=[Depends(get_current_user)]
+    tags=['image_processing']
 )
 
 
 @router.get("/get_job_status", description="Получить статус операции по обработке изображения")
-async def get_status(job_id: str, request: Request):
+async def get_status(job_id: str, request: Request, current_user: User = Depends(get_current_user)):
     job = db.jobs.find_one({'_id': ObjectId(job_id)})
     if not job:
         return {'ok': False, 'error': 'Операция с таким ID не найдена'}
@@ -43,11 +43,12 @@ async def get_status(job_id: str, request: Request):
 
 
 @router.post("/increase_brightness", description="Увеличить яркость изображения")
-async def increase_brightness(value: int, image: UploadFile, background_tasks: BackgroundTasks):
+async def increase_brightness(value: int, image: UploadFile, background_tasks: BackgroundTasks,
+                              current_user: User = Depends(get_current_user)):
     if value <= 0:
         return {'ok': False, 'error': 'value должен быть больше 0'}
 
-    job_id = str(db.jobs.insert_one({'status': 'created'}).inserted_id)
+    job_id = create_job(current_user)
 
     folder_path = f"{UPLOADED_FILES_DIR}{job_id}"
     os.mkdir(folder_path)
@@ -60,8 +61,10 @@ async def increase_brightness(value: int, image: UploadFile, background_tasks: B
 
 
 @router.post("/crop_image", description="Обрезать изображение")
-async def crop_image(x: int, y: int, width: int, height: int, image: UploadFile, background_tasks: BackgroundTasks):
-    job_id = str(db.jobs.insert_one({'status': 'created'}).inserted_id)
+async def crop_image(x: int, y: int, width: int, height: int, image: UploadFile,
+                     background_tasks: BackgroundTasks,
+                     current_user: User = Depends(get_current_user)):
+    job_id = create_job(current_user)
 
     folder_path = f"{UPLOADED_FILES_DIR}{job_id}"
     os.mkdir(folder_path)
@@ -74,8 +77,10 @@ async def crop_image(x: int, y: int, width: int, height: int, image: UploadFile,
 
 
 @router.post("/stitch_image", description="Склеить изображения")
-async def stitch_images(images: List[UploadFile], background_tasks: BackgroundTasks):
-    job_id = str(db.jobs.insert_one({'status': 'created'}).inserted_id)
+async def stitch_images(images: List[UploadFile],
+                        background_tasks: BackgroundTasks,
+                        current_user: User = Depends(get_current_user)):
+    job_id = create_job(current_user)
 
     folder_path = f"{UPLOADED_FILES_DIR}{job_id}"
     os.mkdir(folder_path)
@@ -94,11 +99,12 @@ async def stitch_images(images: List[UploadFile], background_tasks: BackgroundTa
 @router.post("/detect", description="Определить объекты на изображении")
 async def detect_objects(image: UploadFile,
                          background_tasks: BackgroundTasks,
+                         current_user: User = Depends(get_current_user),
                          min_confidence: Union[float, None] = 0.5,
                          border_size: Union[int, None] = 1,
                          with_labels: Union[bool, None] = True,
                          full_output: Union[bool, None] = True):
-    job_id = str(db.jobs.insert_one({'status': 'created'}).inserted_id)
+    job_id = create_job(current_user)
 
     folder_path = f"{UPLOADED_FILES_DIR}{job_id}"
     os.mkdir(folder_path)
@@ -196,6 +202,10 @@ def object_detection_task(file_name: str,
         return result
     else:
         return {'detection_count': count_unique_objects_number(result)}
+
+
+def create_job(user):
+    return str(db.jobs.insert_one({'status': 'created', 'user_id': user.id}).inserted_id)
 
 
 def count_unique_objects_number(detection_result):
