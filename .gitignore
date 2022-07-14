@@ -130,7 +130,6 @@ dmypy.json
 
 tmp/
 logs/
-docs/
 .idea/
 mongo-volume/
 yolov3.weights
