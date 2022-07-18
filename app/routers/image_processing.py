@@ -9,7 +9,8 @@ from app.models.user import User
 from app.services.image_processing.increase_brightness_service import IncreaseBrightnessService
 from app.services.image_processing.crop_image_service import CropImageService
 from app.services.image_processing.stitch_service import StitchService
-from app.services.image_processing.object_detection_service import ObjectDetectionService
+from app.services.object_detection.darknet_yolo_v3 import DarknetYoloV3
+from app.services.object_detection.ibm_ssd import IbmSsd
 from app.services.image_processing.put_captions_on_image_service import PutCaptionsOnImageService
 from app.dependencies import get_current_user
 from app.db.db import db
@@ -17,6 +18,8 @@ from app.db.db import db
 
 UPLOADED_FILES_DIR = 'tmp/uploaded_files/'
 DOWNLOADED_FILES_DIR = 'tmp/downloadable_files/'
+
+AVAILABLE_OBJECT_DETECTION_MODEL_NAMES = {'yolo', 'ssd'}
 
 
 router = APIRouter(
@@ -100,10 +103,16 @@ async def stitch_images(images: List[UploadFile],
 async def detect_objects(image: UploadFile,
                          background_tasks: BackgroundTasks,
                          current_user: User = Depends(get_current_user),
+                         model_name: Union[str, None] = 'yolo',
                          min_confidence: Union[float, None] = 0.5,
                          border_size: Union[int, None] = 1,
                          with_labels: Union[bool, None] = True,
                          full_output: Union[bool, None] = True):
+
+    if model_name not in AVAILABLE_OBJECT_DETECTION_MODEL_NAMES:
+        return {'ok': False, 'error': f"Параметр model_name должен принимать одно из следующих значений: "
+                                      f"{AVAILABLE_OBJECT_DETECTION_MODEL_NAMES}"}
+
     job_id = create_job(current_user)
 
     folder_path = f"{UPLOADED_FILES_DIR}{job_id}"
@@ -114,6 +123,7 @@ async def detect_objects(image: UploadFile,
                               f"{job_id}.png",
                               job_id,
                               image_path,
+                              model_name=model_name,
                               min_confidence=min_confidence,
                               border_width=border_size,
                               with_labels=with_labels,
@@ -185,13 +195,20 @@ def stitch_images_task(file_name: str, job_id, image_paths):
 @job_decorator
 def object_detection_task(file_name: str,
                           job_id, image_path,
+                          model_name='yolo',
                           min_confidence=0.5,
                           border_width=1,
                           with_labels=True,
                           full_output=True):
     output_image_path = f"{DOWNLOADED_FILES_DIR}{file_name}"
     image = cv2.imread(image_path)
-    result = ObjectDetectionService(image, min_confidence=min_confidence).execute()
+    if model_name == 'yolo':
+        result = DarknetYoloV3(image, min_confidence=min_confidence).execute()
+    elif model_name == 'ssd':
+        result = IbmSsd(image, min_confidence=min_confidence).execute()
+    else:
+        raise Exception('unavalible model_name')
+
     result_image = PutCaptionsOnImageService(image,
                                              result,
                                              border_width=border_width,

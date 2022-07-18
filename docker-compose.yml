@@ -3,7 +3,6 @@ services:
   database:
     image: 'mongo:4.2.21'
     volumes:
-      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
       - mongo-volume:/data/db
     env_file: .env
   app:
@@ -12,5 +11,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8999:8000"
+  ibm_ssd_model:
+    image: 'quay.io/codait/max-object-detector'
 volumes:
   mongo-volume:

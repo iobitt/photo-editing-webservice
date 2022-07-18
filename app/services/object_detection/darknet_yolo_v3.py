@@ -17,7 +17,9 @@ FONT_SCALE = 1
 THICKNESS = 1
 
 
-class ObjectDetectionService(BaseService):
+# https://pjreddie.com/darknet/yolo/
+# https://waksoft.susu.ru/2021/05/19/kak-vypolnit-obnaruzhenie-obektov-yolo-s-pomoshhyu-opencv-i-pytorch-v-python/
+class DarknetYoloV3(BaseService):
 
     def __init__(self, image, min_confidence=CONFIDENCE):
         super().__init__(image)

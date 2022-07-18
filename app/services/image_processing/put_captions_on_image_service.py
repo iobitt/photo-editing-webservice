@@ -32,7 +32,7 @@ class PutCaptionsOnImageService(BaseService):
                           (detection['x'] + detection['w'], detection['y'] + detection['h']),
                           color=color, thickness=self.border_width)
             if self.with_labels:
-                text = f"{LABELS[detection['class_id']]}: {detection['confidence']:.2f}"
+                text = f"{detection['label']}: {detection['confidence']:.2f}"
                 # вычисляем ширину и высоту текста, чтобы рисовать прозрачные поля в качестве фона текста
                 (text_width, text_height) = \
                     cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, fontScale=FONT_SCALE, thickness=THICKNESS)[0]

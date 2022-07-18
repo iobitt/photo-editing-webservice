@@ -33,3 +33,6 @@ imutils
 
 # load variables from env file
 python-dotenv
+
+# http-client
+requests
