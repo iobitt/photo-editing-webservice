@@ -54,6 +54,10 @@
 
 `ADMIN_PASSWORD` - пароль администратора.
 
+`IBM_SSD_MODEL_URL` - URL на который нужно отправить запрос для распознавания объектов через модель IBM SSD
+Подразумевается, что эта модель работает в отдельном докер контейнере. Нужно указать хост этого контейнера 
+в локальной докер сети. См. .env.sample
+
 Далее клонируем репозиторий darknet, в котором реализованы многие популярные архитектуры свёрточных нейронных
 сетей.
 
@@ -109,6 +113,11 @@
 На рисунке представлены передаваемые параметры:
 
 ![alt text](docs/2.png "Title")
+
+`model_name` - название модели, которая будет использована для распознавания объектов. На данный момент доступно две
+модели:
+1. yolo - YOLO: Real-Time Object Detection (https://pjreddie.com/darknet/yolo/, https://github.com/pjreddie/darknet)
+2. ssd - IBM Developer Model Asset Exchange: Object Detector (https://hub.docker.com/r/codait/max-object-detector)
 
 `image` - изображение, на котором нужно определить объекты
 
