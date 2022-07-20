@@ -19,6 +19,7 @@ THICKNESS = 1
 
 # https://pjreddie.com/darknet/yolo/
 # https://waksoft.susu.ru/2021/05/19/kak-vypolnit-obnaruzhenie-obektov-yolo-s-pomoshhyu-opencv-i-pytorch-v-python/
+# TODO: унести в отдельный docker контейнер
 class DarknetYoloV3(BaseService):
 
     def __init__(self, image, min_confidence=CONFIDENCE):
